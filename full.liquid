@@ -1,174 +1,170 @@
 <div class="screen">
   <div class="view view--full">
     <div class="layout" style="padding:0;height:calc(100% - 32px);">
-      <div id="tfl-board" style="display:flex;flex-direction:column;width:100%;height:100%;"></div>
+      <div id="naolib-board" style="display:flex;flex-direction:column;width:100%;height:100%;padding:12px 16px;box-sizing:border-box;overflow:hidden;"></div>
     </div>
     <div class="title_bar">
-      <img class="image" src="https://upload.wikimedia.org/wikipedia/commons/0/0d/Transport_for_London_%28TfL%29_roundel.svg" />
-      <span class="title">TfL Line Status</span>
+      <span class="title">Naolib</span>
       <span class="instance" id="updated-time"></span>
     </div>
   </div>
 </div>
 
 <script>
-  const LINE_META = {
-    "bakerloo":           "Bakerloo",
-    "central":            "Central",
-    "circle":             "Circle",
-    "district":           "District",
-    "hammersmith-city":   "H & City",
-    "jubilee":            "Jubilee",
-    "metropolitan":       "Metropolitan",
-    "northern":           "Northern",
-    "piccadilly":         "Piccadilly",
-    "victoria":           "Victoria",
-    "waterloo-city":      "Waterloo & City",
-    "elizabeth":          "Elizabeth",
-    "lioness":            "Lioness",
-    "mildmay":            "Mildmay",
-    "windrush":           "Windrush",
-    "weaver":             "Weaver",
-    "suffragette":        "Suffragette",
-    "liberty":            "Liberty",
-  };
-
-  const LINE_ORDER = [
-    "bakerloo","central","circle","district","elizabeth",
-    "hammersmith-city","jubilee","metropolitan","northern",
-    "piccadilly","victoria","waterloo-city",
-    "lioness","mildmay","windrush","weaver","suffragette","liberty"
+  // Preview data – in the TRMNL editor, replace STOPS_DATA with: {{ data | json }}
+  const STOPS_DATA = [
+    {"codeLieu":"CRQU","libelle":"Place du Cirque","distance":"63 m","ligne":[{"numLigne":"11"},{"numLigne":"2"},{"numLigne":"23"}]},
+    {"codeLieu":"COMM","libelle":"Commerce","distance":"343 m","ligne":[{"numLigne":"1"},{"numLigne":"2"},{"numLigne":"C1"}]}
   ];
 
-  const boxStyle = [
-    "flex:1",
-    "width:0",
-    "display:flex",
-    "align-items:center",
-    "justify-content:center",
-    "padding:2px 6px",
-    "font-size:9.5px",
-    "font-weight:700",
-    "text-transform:uppercase",
-    "letter-spacing:0.06em",
-    "line-height:1.25",
-    "text-align:center",
-    "color:#111",
-    "background:#fff",
-    "border:1.5px solid #111",
-  ].join(";");
+  const PREVIEW_DEPARTURES = [
+    {"sens":1,"terminus":"Orvault Grand Val","infotrafic":false,"temps":"3mn","dernierDepart":"false","tempsReel":"true","ligne":{"numLigne":"11","typeLigne":3},"arret":{"codeArret":"CRQU1"}},
+    {"sens":2,"terminus":"Pirmil","infotrafic":false,"temps":"8mn","dernierDepart":"false","tempsReel":"true","ligne":{"numLigne":"2","typeLigne":1},"arret":{"codeArret":"CRQU2"}},
+    {"sens":1,"terminus":"Jamet","infotrafic":false,"temps":"5mn","dernierDepart":"false","tempsReel":"false","ligne":{"numLigne":"23","typeLigne":3},"arret":{"codeArret":"CRQU3"}},
+    {"sens":2,"terminus":"Beaujoire","infotrafic":false,"temps":"12mn","dernierDepart":"false","tempsReel":"true","ligne":{"numLigne":"2","typeLigne":1},"arret":{"codeArret":"CRQU4"}},
+    {"sens":1,"terminus":"Orvault Grand Val","infotrafic":false,"temps":"18mn","dernierDepart":"false","tempsReel":"false","ligne":{"numLigne":"11","typeLigne":3},"arret":{"codeArret":"CRQU5"}}
+  ];
 
-  const statusStyle = [
-    "flex:1",
-    "width:0",
-    "display:flex",
-    "align-items:center",
-    "justify-content:center",
-    "padding:2px 6px",
-    "font-size:9.5px",
-    "font-weight:400",
-    "line-height:1.25",
-    "text-align:center",
-    "color:#111",
-    "background:#fff",
-    "border:1.5px solid #111",
-    "border-left:none",
-  ].join(";");
-
-  const statusDisruptedStyle = [
-    "flex:1",
-    "width:0",
-    "display:flex",
-    "align-items:center",
-    "justify-content:center",
-    "padding:2px 6px",
-    "font-size:9.5px",
-    "font-weight:700",
-    "line-height:1.25",
-    "text-align:center",
-    "color:#fff",
-    "background:#111",
-    "border:1.5px solid #111",
-    "border-left:none",
-  ].join(";");
-
-  function parseLines(data) {
-    const results = {};
-    for (const line of data) {
-      const statuses = line.lineStatuses || [];
-      const worst = statuses.reduce((best, s) =>
-        s.statusSeverity < best.statusSeverity ? s : best,
-        statuses[0] || { statusSeverity: 10, statusSeverityDescription: "Good Service" }
-      );
-      results[line.id] = {
-        isGood: worst.statusSeverity >= 10,
-        shortStatus: worst.statusSeverityDescription || "Good Service"
-      };
+  async function fetchDepartures(stopCode) {
+    try {
+      const res = await fetch("https://open.tan.fr/ewp/tempsattente.json/" + stopCode);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } catch (e) {
+      return null;
     }
-    return results;
   }
 
-  function render(data) {
-    const parsed = parseLines(data);
-    const board  = document.getElementById("tfl-board");
+  function renderBoard(stop, departures) {
+    const board = document.getElementById("naolib-board");
     board.innerHTML = "";
 
-    const ids = [
-      ...LINE_ORDER.filter(id => parsed[id]),
-      ...Object.keys(parsed).filter(id => !LINE_ORDER.includes(id))
-    ];
+    // Stop name header
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-shrink:0;";
 
-    for (const id of ids) {
-      const label  = LINE_META[id] || id;
-      const status = parsed[id] || { isGood: true, shortStatus: "Good Service" };
+    const stopName = document.createElement("span");
+    stopName.style.cssText = "font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;";
+    stopName.textContent = stop.libelle;
 
-      const row = document.createElement("div");
-      row.style.cssText = "display:flex;align-items:center;justify-content:center;flex:1;";
+    const dist = document.createElement("span");
+    dist.style.cssText = "font-size:12px;font-weight:400;opacity:0.55;white-space:nowrap;";
+    dist.textContent = stop.distance;
 
-      const pair = document.createElement("div");
-      pair.style.cssText = "display:flex;align-items:stretch;height:100%;width:320px;";
+    header.appendChild(stopName);
+    header.appendChild(dist);
+    board.appendChild(header);
 
-      const pill = document.createElement("div");
-      pill.style.cssText = boxStyle;
-      pill.textContent = label;
+    // Divider
+    const hr = document.createElement("div");
+    hr.style.cssText = "width:100%;height:1.5px;background:#111;margin-bottom:6px;flex-shrink:0;";
+    board.appendChild(hr);
 
-      const box = document.createElement("div");
-      box.style.cssText = status.isGood ? statusStyle : statusDisruptedStyle;
-      box.textContent = status.shortStatus;
+    // Column headers
+    const colHeader = document.createElement("div");
+    colHeader.style.cssText = "display:flex;align-items:center;gap:8px;padding:0 0 4px 0;flex-shrink:0;";
+    colHeader.innerHTML = [
+      '<span style="min-width:36px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.45;">Ligne</span>',
+      '<span style="flex:1;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.45;">Direction</span>',
+      '<span style="min-width:46px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.45;">Attente</span>',
+      '<span style="width:8px;"></span>',
+    ].join("");
+    board.appendChild(colHeader);
 
-      pair.appendChild(pill);
-      pair.appendChild(box);
-      row.appendChild(pair);
-      board.appendChild(row);
+    // Filter departures that have a wait time
+    const valid = (departures || []).filter(d => d.temps && d.temps.trim() !== "");
+
+    if (valid.length === 0) {
+      const empty = document.createElement("div");
+      empty.style.cssText = "font-size:13px;opacity:0.5;padding:12px 0;";
+      empty.textContent = "Aucun départ disponible";
+      board.appendChild(empty);
+    } else {
+      for (const dep of valid.slice(0, 7)) {
+        const isTram = dep.ligne.typeLigne === 1;
+        const isRealtime = dep.tempsReel === "true";
+
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.12);flex-shrink:0;";
+
+        // Line badge – rounded square for tram, pill for bus
+        const badge = document.createElement("div");
+        badge.style.cssText = [
+          "min-width:36px",
+          "height:22px",
+          "display:flex",
+          "align-items:center",
+          "justify-content:center",
+          "font-size:12px",
+          "font-weight:700",
+          "letter-spacing:0.02em",
+          "background:#111",
+          "color:#fff",
+          "flex-shrink:0",
+          isTram ? "border-radius:4px" : "border-radius:11px",
+        ].join(";");
+        badge.textContent = dep.ligne.numLigne;
+
+        // Direction
+        const direction = document.createElement("div");
+        direction.style.cssText = "flex:1;font-size:13px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;";
+        direction.textContent = "\u2192 " + dep.terminus;
+
+        // Wait time
+        const timeEl = document.createElement("div");
+        timeEl.style.cssText = [
+          "min-width:46px",
+          "text-align:right",
+          "font-size:14px",
+          "font-weight:700",
+          "flex-shrink:0",
+          isRealtime ? "opacity:1;" : "opacity:0.45;",
+        ].join(";");
+        timeEl.textContent = dep.temps;
+
+        // Real-time dot indicator
+        const dot = document.createElement("div");
+        dot.style.cssText = [
+          "width:6px",
+          "height:6px",
+          "border-radius:50%",
+          "flex-shrink:0",
+          isRealtime ? "background:#111;" : "background:transparent;border:1.5px solid rgba(0,0,0,0.25);box-sizing:border-box;",
+        ].join(";");
+
+        row.appendChild(badge);
+        row.appendChild(direction);
+        row.appendChild(timeEl);
+        row.appendChild(dot);
+        board.appendChild(row);
+      }
     }
 
-    const now     = new Date();
-    const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    const dateStr = now.toLocaleDateString("en-GB",  { day: "numeric", month: "short" });
-    document.getElementById("updated-time").textContent = `${dateStr}, ${timeStr}`;
+    // Timestamp
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const dateStr = now.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    document.getElementById("updated-time").textContent = dateStr + ", " + timeStr;
   }
 
-  // Replace TFL_DATA with {{ tfl_json }} in the TRMNL editor
-  const TFL_DATA = [
-    {"id":"bakerloo",         "lineStatuses":[{"statusSeverity":9, "statusSeverityDescription":"Minor Delays"}]},
-    {"id":"central",          "lineStatuses":[{"statusSeverity":6, "statusSeverityDescription":"Severe Delays"}]},
-    {"id":"circle",           "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"district",         "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"hammersmith-city", "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"jubilee",          "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"metropolitan",     "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"northern",         "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"piccadilly",       "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"victoria",         "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"waterloo-city",    "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"elizabeth",        "lineStatuses":[{"statusSeverity":6, "statusSeverityDescription":"Severe Delays"}]},
-    {"id":"lioness",          "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"mildmay",          "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"windrush",         "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"weaver",           "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"suffragette",      "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]},
-    {"id":"liberty",          "lineStatuses":[{"statusSeverity":10,"statusSeverityDescription":"Good Service"}]}
-  ];
+  function renderError(msg) {
+    document.getElementById("naolib-board").innerHTML =
+      '<div style="font-size:13px;opacity:0.5;padding:16px 0;">' + msg + "</div>";
+  }
 
-  render(TFL_DATA);
+  async function init() {
+    const stops = STOPS_DATA;
+    if (!stops || !stops.length) {
+      renderError("Aucun arrêt trouvé à ces coordonnées.");
+      return;
+    }
+
+    const nearest = stops[0];
+    const departures = await fetchDepartures(nearest.codeLieu);
+
+    // Fall back to preview data only when running outside TRMNL (no real data)
+    renderBoard(nearest, departures !== null ? departures : PREVIEW_DEPARTURES);
+  }
+
+  init();
 </script>

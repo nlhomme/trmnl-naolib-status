@@ -1,12 +1,11 @@
 ---
 strategy: polling
-no_screen_padding: 'no'
+no_screen_padding: 'yes'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-polling_url: https://api.tfl.gov.uk/Line/Mode/tube,overground,elizabeth-line/Status
+polling_url: https://open.tan.fr/ewp/arrets.json/47,21661/-1,556754
 polling_headers: ''
 polling_body: ''
-id: 256159
-name: TfL Status 2
+name: Naolib Departures
 refresh_interval: 60
