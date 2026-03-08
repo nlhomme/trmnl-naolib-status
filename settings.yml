@@ -4,7 +4,7 @@ no_screen_padding: 'yes'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-polling_url: https://open.tan.fr/ewp/arrets.json/47,21661/-1,556754
+polling_url: https://naolib-worker.YOUR_SUBDOMAIN.workers.dev/?lat=YOUR_LAT&lng=YOUR_LNG
 polling_headers: ''
 polling_body: ''
 name: Naolib Departures
