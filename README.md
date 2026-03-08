@@ -1,4 +1,4 @@
-# Naolib- Départs à proximité – Plugin TRMNL
+# Naolib - Départs à proximité – Plugin TRMNL
 
 Affiche en temps réel les prochains départs depuis l'arrêt Naolib (TAN) le plus proche de n'importe quel emplacement à Nantes.
 
