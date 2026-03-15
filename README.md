@@ -5,7 +5,7 @@ Affiche en temps réel les prochains départs depuis l'arrêt Naolib (TAN) le pl
 ## Fonctionnement
 
 1. Un Cloudflare Worker (`worker.js`) sert de proxy : il récupère les arrêts à proximité et leurs horaires de départ en temps réel depuis l'API TAN, puis renvoie les données combinées au format `merge_variables` de TRMNL.
-2. TRMNL interroge l'URL du Worker avec vos coordonnées et affiche le tableau des départs via `full.liquid`.
+2. TRMNL interroge l'URL du Worker avec vos coordonnées et affiche le tableau des départs via les templates Liquid du dossier `views/`.
 3. L'affichage se rafraîchit toutes les minutes.
 
 ## Architecture
@@ -15,7 +15,7 @@ TRMNL interroge → Cloudflare Worker?lat=...&lng=...
                    → TAN /arrets.json (arrêts à proximité)
                    → TAN /tempsattente.json (départs)
                    → renvoie { merge_variables: { stop, departures, refreshed_at } }
-TRMNL affiche full.liquid avec {{ merge_variables.* }}
+TRMNL affiche views/*.liquid avec {{ merge_variables.* }}
 ```
 
 ## Installation
@@ -31,6 +31,8 @@ wrangler deploy
 ```
 
 L'URL du Worker s'affichera après le déploiement (ex. `https://naolib-worker.votre-sous-domaine.workers.dev`).
+
+> Si vous ne pouvez pas héberger le Worker vous-même, envoyez un email à `adverbe_upsilon2z@icloud.com` pour obtenir une URL de polling prête à l'emploi.
 
 ### 2. Trouver vos coordonnées
 
@@ -56,7 +58,12 @@ Dans le [tableau de bord TRMNL](https://usetrmnl.com), créez un nouveau plugin 
 
 ### 4. Coller le template
 
-Copiez le contenu de `full.liquid` dans le champ **Full** de l'éditeur de plugin TRMNL.
+Copiez le contenu de chaque fichier du dossier `views/` dans le champ correspondant de l'éditeur de plugin TRMNL :
+
+- `views/full.liquid` → champ **Full**
+- `views/half-horizontal.liquid` → champ **Half (Horizontal)**
+- `views/half-vertical.liquid` → champ **Half (Vertical)**
+- `views/quadrant.liquid` → champ **Quadrant**
 
 ## Affichage
 
@@ -72,7 +79,10 @@ Copiez le contenu de `full.liquid` dans le champ **Full** de l'éditeur de plugi
 |---|---|
 | `worker.js` | Cloudflare Worker — récupère les arrêts et départs depuis l'API TAN |
 | `wrangler.toml` | Configuration de déploiement du Worker |
-| `full.liquid` | Template Liquid TRMNL utilisant le [design system Framework](https://trmnl.com/framework) |
+| `views/full.liquid` | Template Liquid — vue plein écran |
+| `views/half-horizontal.liquid` | Template Liquid — vue demi-écran horizontal |
+| `views/half-vertical.liquid` | Template Liquid — vue demi-écran vertical |
+| `views/quadrant.liquid` | Template Liquid — vue quart d'écran |
 | `settings.yml` | Référence des paramètres du plugin (non synchronisé avec TRMNL) |
 
 ## API

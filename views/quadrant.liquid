@@ -1,0 +1,36 @@
+<div class="layout layout--col layout--top layout--stretch-x">
+  <div class="flex flex--row, flex--wrap mb--2">
+    <span class="value--small lg:value--base" data-pixel-perfect="true">{{ merge_variables.stop.libelle }}</span>
+    <span class="label lg:label--large text--gray-30" data-pixel-perfect="true">{{ merge_variables.stop.distance }}</span>
+
+    <div class="divider"></div>
+
+  </div>
+  <div class="flex flex-row, flex-wrap">
+    <span class="value value--xsmall lg:value--small text--gray-30" data-pixel-perfect="true">Ligne</span>
+    <span class="value--xsmall lg:value--small text--gray-30 pl--3 stretch-x" data-pixel-perfect="true">Direction</span>
+    <span class="value--xsmall lg:value--small text--gray-30" data-pixel-perfect="true">Attente</span>
+  </div>
+  
+  <div class="divider"></div>
+
+  {% for dep in merge_variables.departures %}
+  {% if dep.tempsReel == "true" %}{% assign time_opacity = "1" %}{% assign dot_style = "background:#111;" %}{% else %}{% assign time_opacity = "0.45" %}{% assign dot_style = "border:1.5px solid rgba(0,0,0,0.25);" %}{% endif %}
+  <div class="flex flex-row, flex-wrap">
+    <div class="value--xsmall lg:value--small pl--3 data-pixel-perfect="true"">{{ dep.ligne.numLigne }}</div>
+    <div class="value--xsmall lg:value--small pl--9 stretch-x data-pixel-perfect="true"">&#8594; {{ dep.terminus }}</div>
+    <div class="value--xsmall lg:value--small data-pixel-perfect="true"">{{ dep.temps }}</div>
+    <div class="rounded--medium" data-pixel-perfect="true" style="width:6px;height:6px;flex-shrink:0;{{ dot_style }}"></div>
+  </div>
+  <div class="divider"></div>
+
+  {% else %}
+  <div class="value--xxsmall p--12 data-pixel-perfect="true"">Aucun d&eacute;part disponible</div>
+  {% endfor %}
+
+</div>
+
+<div class="title_bar">
+  <span class="title" data-pixel-perfect="true">Naolib - Départs à proximité </span>
+  <span class="instance" >{{ merge_variables.refreshed_at }}</span>
+</div>
