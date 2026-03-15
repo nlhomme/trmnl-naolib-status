@@ -24,6 +24,10 @@ All 4 templates in `views/` share the same logic and only differ in CSS sizing c
 - Always return HTTP 200 even on errors (non-200 causes TRMNL to discard data). Include error info in the response body.
 - All filtering and limiting of departures must be done **server-side** in `worker.js`. Liquid integer counters and comparisons are unreliable in TRMNL's Liquid engine.
 
+## TRMNL API docs
+
+TRMNL documentation is available at: https://docs.trmnl.com/go/llms.txt
+
 ## TAN API
 
 - No API key required.
